@@ -80,6 +80,8 @@ See [`home-assistant/`](home-assistant/) for ready-to-use config: MQTT entities 
 1. Copy `secrets.example.h` to `secrets.h` and fill in your Adafruit IO username/key. `secrets.h` is gitignored - it never gets committed.
 2. Install the ESP32 board package and these libraries in the Arduino IDE: `Adafruit PN532`, `Adafruit MPU6050`, `Adafruit Unified Sensor`, `PubSubClient`, `TinyGSM`.
 3. Board settings: **ESP32 Dev Module**, Flash Size **16MB**, Partition Scheme **Custom** (picks up `partitions.csv` from the sketch folder automatically).
+
+   > **Note:** `partitions.csv` is laid out for a **16MB flash** board (3MB app / 9MB LittleFS). If your T-SIM7000G (or other ESP32 board) has a different flash size - 4MB and 8MB variants are common - you'll need to adjust the partition table's offsets/sizes to fit, or the build won't flash correctly. Set the matching Flash Size in board settings either way.
 4. Update `apn` in the sketch for your carrier if you're not on Google Fi.
 5. Compile and flash.
 
