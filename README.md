@@ -37,6 +37,21 @@ MQTT over the SIM7000's cellular data connection, using [Adafruit IO](https://io
 | `motocmd` | Inbound commands (`ARM`, `DISARM`, `GPS`, `DUMPLOG`, `CLEARLOG`) |
 | `motolog` | Chunked debug-log dump, published on `DUMPLOG` |
 
+### LED indicator
+
+The only feedback available without a phone in hand - one onboard LED, several distinct patterns:
+
+| Pattern | Meaning |
+|---|---|
+| Off | Disarmed and idle |
+| Off (held low) | Light sleep |
+| 4 quick flashes, then solid on | Boot or wake-up sequence starting |
+| Brief blink every ~5 seconds | Armed and idle (heartbeat pulse) |
+| Fast continuous blink | Theft alarm triggered, **or** NFC learn mode active |
+| Fast blink for 10 seconds after an armed wake | Waiting for an NFC tap (grace period) before deciding theft vs. legitimate access |
+| Two quick flashes | Command confirmed: now armed |
+| One long flash (~800ms) | Command confirmed: now disarmed |
+
 ### Power/sleep cycle
 
 The device spends almost all of its time in ESP32 **light sleep** (not deep sleep - `setup()` doesn't re-run on a normal wake, so armed/theft state persists across wake cycles without needing RTC-memory tricks). It wakes on:
