@@ -1,0 +1,174 @@
+# =========================================================================
+# MotoTrak - Home Assistant automations
+# =========================================================================
+# Only the MotoTrak-related automations are included here. Append these
+# entries into your existing automations.yaml (it's a flat YAML list).
+#
+# Replace YOUR_ADAFRUIT_IO_USERNAME with your SECRET_MQTT_USER value, and
+# swap media_player.your_speaker / tts.your_tts_service for whatever
+# media player and TTS service you actually have, if you want the TTS
+# theft announcement.
+# =========================================================================
+
+- id: 56733b7ffda345b9a5f6c24b55347ebc
+  alias: 'Moto: Theft Detected Critical Alert'
+  description: Critical alert when motion is detected while armed
+  triggers:
+  - entity_id:
+    - sensor.moto_raw_status
+    to:
+    - THEFT_DETECTED
+    trigger: state
+  actions:
+  - data:
+      title: "\U0001F6A8 MOTO THEFT DETECTED!"
+      message: Motion detected on the bike! Tracking started.
+      data:
+        push:
+          sound:
+            name: default
+            critical: 1
+            volume: 1
+    action: notify.my_phone
+  mode: single
+
+- id: c7cf9f219d7e4686b0d176141af13455
+  alias: 'Moto: Low Battery Warning'
+  description: Notify when bike battery drops below 3.5V
+  triggers:
+  - trigger: numeric_state
+    entity_id: sensor.moto_battery_voltage
+    below: 3.5
+  actions:
+  - action: notify.my_phone
+    data:
+      title: "\U0001FAAB Moto Battery Low"
+      message: Battery is at {{ states('sensor.moto_battery_voltage') }}V. Recharge immediately.
+  mode: single
+
+- id: ea2a1b96e1414b1fb87457b1a3b4494b
+  alias: 'Moto: Geofence Breach'
+  description: Notify if bike leaves the Home zone while armed
+  triggers:
+  - entity_id: device_tracker.moto_tracker
+    from: home
+    to: not_home
+    trigger: state
+  conditions:
+  - condition: or
+    conditions:
+    - condition: state
+      entity_id: sensor.moto_raw_status
+      state:
+      - ARMED_REMOTE
+    - condition: state
+      entity_id: sensor.moto_raw_status
+      state:
+      - ARMED_LOCAL
+    - condition: state
+      entity_id: sensor.moto_raw_status
+      state:
+      - WAKE_ARMED
+    - condition: state
+      entity_id: sensor.moto_raw_status
+      state:
+      - Sleeping_Armed
+    - condition: state
+      entity_id: sensor.moto_raw_status
+      state:
+      - HEARTBEAT_ARMED
+    - condition: state
+      entity_id: sensor.moto_raw_status
+      state:
+      - THEFT_DETECTED
+    - condition: state
+      entity_id: sensor.moto_raw_status
+      state:
+      - WAKE_THEFT_TRIGGERED
+  actions:
+  - data:
+      title: "\U0001F6D1 MOTO MOVEMENT ALERT"
+      message: Bike has left the Home zone while ARMED!
+      data:
+        push:
+          sound:
+            name: default
+            critical: 1
+            volume: 1
+    action: notify.my_phone
+  mode: single
+
+- id: '1771285263026'
+  alias: 'Moto Tracker: Theft Alarm TTS'
+  description: Optional - announces a theft alert over a media player/TTS service
+  triggers:
+  - topic: YOUR_ADAFRUIT_IO_USERNAME/feeds/motostatus
+    payload: THEFT_DETECTED
+    trigger: mqtt
+  - topic: YOUR_ADAFRUIT_IO_USERNAME/feeds/motostatus
+    payload: WAKE_THEFT_TRIGGERED
+    trigger: mqtt
+  conditions: []
+  actions:
+  - action: media_player.volume_set
+    target:
+      entity_id: media_player.your_speaker
+    data:
+      volume_level: 1
+  - action: tts.cloud_say
+    data:
+      entity_id: media_player.your_speaker
+      message: Warning. Motorcycle theft detected. Check the bike immediately.
+  mode: single
+
+- id: a4f7c12e9b8d4f3a91e2d6c5b8a7f104
+  alias: 'Moto: Append Debug Log Chunk'
+  description: Appends each incoming motolog MQTT chunk to the local assembled log file
+  triggers:
+  - topic: YOUR_ADAFRUIT_IO_USERNAME/feeds/motolog
+    trigger: mqtt
+  conditions: []
+  actions:
+  - action: shell_command.append_motolog
+    data:
+      chunk: "{{ trigger.payload }}"
+  mode: queued
+
+- id: b8e3d27a5c1f4960af83e7d4b2c69015
+  alias: 'Moto: Debug Log Dump Complete'
+  description: Notifies when the firmware finishes publishing the debug log to MQTT
+  triggers:
+  - topic: YOUR_ADAFRUIT_IO_USERNAME/feeds/motostatus
+    payload: LOG_DUMP_COMPLETE
+    trigger: mqtt
+  conditions: []
+  actions:
+  - action: persistent_notification.create
+    data:
+      title: MotoTrak debug log ready
+      message: Assembled at /config/www/motolog_assembled.txt - view it on the dashboard.
+  mode: single
+
+- id: c916fa48e2d75b3091c4a8e7f5b03d62
+  alias: 'Moto: Clear Local Debug Log File'
+  description: Wipes the locally assembled log file when the firmware confirms its own log was wiped
+  triggers:
+  - topic: YOUR_ADAFRUIT_IO_USERNAME/feeds/motostatus
+    payload: LOG_WIPED
+    trigger: mqtt
+  conditions: []
+  actions:
+  - action: shell_command.clear_motolog_file
+  mode: single
+
+- id: d2f9c85b6e4a4711b3c8f92e7a1d5c40
+  alias: 'Moto: Clear Local Log Before Fresh Dump'
+  description: Truncates the assembled log file right before a DUMPLOG pull so repeated pulls don't duplicate content
+  triggers:
+  - topic: YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd
+    payload: DUMPLOG
+    trigger: mqtt
+  conditions: []
+  actions:
+  - action: shell_command.clear_motolog_file
+  mode: single

@@ -1,0 +1,131 @@
+# =========================================================================
+# MotoTrak - Home Assistant configuration snippet
+# =========================================================================
+# This is NOT a complete configuration.yaml - merge these blocks into your
+# existing one (or split into packages, if you use those).
+#
+# Replace YOUR_ADAFRUIT_IO_USERNAME everywhere below with the same value
+# you set as SECRET_MQTT_USER in the firmware's secrets.h - the topic
+# prefix must match exactly or nothing will connect.
+#
+# Requires the official MQTT integration already configured and pointed
+# at io.adafruit.com:1883 with your Adafruit IO username/key as the MQTT
+# username/password.
+# =========================================================================
+
+mqtt:
+  sensor:
+    # Raw text status - shows the exact string the firmware published
+    - name: "Moto Raw Status"
+      state_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motostatus"
+      force_update: true
+      icon: "mdi:text-box-outline"
+    # Battery voltage (firmware publishes millivolts as an integer)
+    - name: "Moto Battery Voltage"
+      state_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motobatt"
+      unit_of_measurement: "V"
+      device_class: voltage
+      state_class: measurement
+      force_update: true
+      icon: "mdi:battery"
+      value_template: "{{ (value | float / 1000) | round(2) }}"
+    # Cellular signal quality (CSQ, 0-31, 99 = unknown)
+    - name: "Moto Signal Strength"
+      state_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motosignal"
+      unit_of_measurement: "CSQ"
+      icon: "mdi:signal-cellular-outline"
+      force_update: true
+    # Last command received by the device (mostly diagnostic)
+    - name: "Moto Command"
+      state_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd"
+      icon: "mdi:console-line"
+      force_update: true
+
+  device_tracker:
+    - name: "Moto Tracker"
+      source_type: gps
+      json_attributes_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motogps/csv"
+      # Firmware publishes GPS as a CSV string: speed,lat,lon,alt
+      json_attributes_template: >-
+        {% set parts = value.split(',') %}
+        {% if parts|length >= 4 %}
+          {
+            "latitude": {{ parts[1] | float }},
+            "longitude": {{ parts[2] | float }},
+            "speed_kph": {{ parts[0] | float }},
+            "altitude": {{ parts[3] | float }},
+            "last_seen": "{{ as_timestamp(now()) | timestamp_custom('%H:%M:%S') }}"
+          }
+        {% endif %}
+
+  # Native alarm panel entity - shows armed/disarmed/triggered
+  alarm_control_panel:
+    - name: "Moto Security System"
+      state_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motostatus"
+      command_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd"
+      payload_arm_away: "ARM"
+      payload_disarm: "DISARM"
+      # NOTE: 'disarmed' is checked before 'armed_away' on purpose -
+      # "DISARMED" contains "ARMED" as a substring, so checking 'ARMED'
+      # first would misclassify every DISARMED_*/WAKE_DISARMED/
+      # HEARTBEAT_DISARMED status as armed_away.
+      value_template: >-
+        {% set s = value | upper %}
+        {% if 'THEFT' in s or 'TRIGGERED' in s or 'ALARM' in s %}
+          triggered
+        {% elif 'DISARMED' in s or 'READY' in s or 'AWAKE' in s or 'CLEARED' in s %}
+          disarmed
+        {% elif 'ARMED' in s %}
+          armed_away
+        {% else %}
+          unknown
+        {% endif %}
+
+  # Simple on/off mirror of the alarm state, handy for automations/dashboards
+  switch:
+    - name: "Moto Security"
+      command_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd"
+      state_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motostatus"
+      payload_on: "ARM"
+      payload_off: "DISARM"
+      state_on: "ARM"
+      state_off: "DISARM"
+      # NOTE: same substring-collision fix as the alarm panel above.
+      value_template: >-
+        {% set s = value | upper %}
+        {% if 'DISARM' in s %}
+          DISARM
+        {% elif 'ARMED' in s or 'THEFT' in s or 'TRIGGERED' in s %}
+          ARM
+        {% else %}
+          DISARM
+        {% endif %}
+
+  button:
+    - name: "Moto Pull Debug Log"
+      unique_id: moto_dumplog
+      command_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd"
+      payload_press: "DUMPLOG"
+      icon: mdi:file-download
+    - name: "Moto Clear Debug Log"
+      unique_id: moto_clearlog
+      command_topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd"
+      payload_press: "CLEARLOG"
+      icon: mdi:file-remove
+
+# Notify target used by the automations below - point this at your own
+# mobile app / notify service.
+notify:
+  - name: my_phone
+    platform: group
+    services:
+      - service: YOUR_MOBILE_APP_NOTIFY_SERVICE  # e.g. mobile_app_your_phone
+
+# Assembles the chunked debug-log dump into a viewable local file. Requires
+# a shell-capable HA install (HAOS/Supervised/Container - not "Core" on
+# Windows). Writes into /config/www so it's reachable at /local/... .
+shell_command:
+  append_motolog: >-
+    bash -c 'mkdir -p /config/www; printf "%s\n" "$1" >> /config/www/motolog_assembled.txt' _ '{{ chunk }}'
+  clear_motolog_file: >-
+    bash -c 'mkdir -p /config/www; : > /config/www/motolog_assembled.txt'

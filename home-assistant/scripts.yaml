@@ -1,0 +1,38 @@
+# =========================================================================
+# MotoTrak - Home Assistant script
+# =========================================================================
+# Bound to the dashboard's Security System card tap_action. Toggles the
+# alarm by inspecting sensor.moto_raw_status instead of blindly sending
+# one command - if the state is ambiguous (e.g. "unknown" right after an
+# HA restart, before the device's next MQTT publish), it does nothing and
+# notifies you instead of guessing.
+#
+# Replace YOUR_ADAFRUIT_IO_USERNAME with your SECRET_MQTT_USER value.
+# =========================================================================
+
+moto_toggle:
+  alias: "Moto Toggle Security"
+  sequence:
+    - variables:
+        s: "{{ states('sensor.moto_raw_status') | upper }}"
+    - choose:
+        - conditions: "{{ 'DISARM' in s or 'READY' in s or 'AWAKE' in s or 'CLEARED' in s }}"
+          sequence:
+            - service: mqtt.publish
+              data:
+                topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd"
+                payload: "ARM"
+        - conditions: "{{ 'ARMED' in s or 'THEFT' in s or 'TRIGGERED' in s }}"
+          sequence:
+            - service: mqtt.publish
+              data:
+                topic: "YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd"
+                payload: "DISARM"
+      default:
+        - service: persistent_notification.create
+          data:
+            title: "Moto Toggle - Unknown State"
+            message: >-
+              Could not determine current arm state
+              (sensor.moto_raw_status = "{{ states('sensor.moto_raw_status') }}").
+              No command sent - check the tracker's connection.

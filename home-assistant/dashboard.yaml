@@ -1,0 +1,114 @@
+# =========================================================================
+# MotoTrak - Lovelace dashboard card
+# =========================================================================
+# Paste this as a card into a dashboard view (Edit Dashboard -> Add Card ->
+# Show Code Editor, or in a YAML-mode dashboard).
+#
+# Requires two HACS frontend add-ons for the security-status tile:
+#   - Mushroom Cards      https://github.com/piitaya/lovelace-mushroom
+#   - card-mod            https://github.com/thomasloven/lovelace-card-mod
+# Everything else (glance, map, button) is built into Home Assistant.
+#
+# The "View Log" tile links to /local/motolog_viewer.html - see
+# motolog_viewer.html in this folder, which needs to be copied into your
+# /config/www/ directory for that link to work.
+# =========================================================================
+
+type: vertical-stack
+cards:
+  - type: glance
+    show_name: true
+    show_icon: true
+    show_state: true
+    entities:
+      - entity: sensor.moto_battery_voltage
+        name: Battery
+      - entity: sensor.moto_signal_strength
+        name: Signal
+      - entity: sensor.moto_command
+        name: Command
+  - type: glance
+    show_name: true
+    show_icon: true
+    show_state: false
+    entities:
+      - entity: sensor.moto_raw_status
+        name: History
+        icon: mdi:history
+        tap_action:
+          action: more-info
+      - entity: sensor.moto_raw_status
+        name: Locate
+        icon: mdi:crosshairs-gps
+        tap_action:
+          action: call-service
+          service: mqtt.publish
+          data:
+            topic: YOUR_ADAFRUIT_IO_USERNAME/feeds/motocmd
+            payload: GPS
+  - type: map
+    entities:
+      - entity: device_tracker.moto_tracker
+    aspect_ratio: "16:9"
+    default_zoom: 15
+    hours_to_show: 24
+    dark_mode: false
+  - type: custom:mushroom-template-card
+    entity: sensor.moto_raw_status
+    primary: Security System
+    secondary: "{{ states('sensor.moto_raw_status') | replace('_', ' ') | title }}"
+    icon: >-
+      {% set s = states('sensor.moto_raw_status') | upper %} {% if 'THEFT' in s
+      or 'TRIGGERED' in s %}
+        mdi:shield-alert
+      {% elif 'DISARM' in s or 'READY' in s or 'AWAKE' in s or 'CLEARED' in s %}
+        mdi:shield-check
+      {% else %}
+        mdi:shield-lock
+      {% endif %}
+    icon_color: >-
+      {% set s = states('sensor.moto_raw_status') | upper %} {% if 'THEFT' in s
+      or 'TRIGGERED' in s %}
+        red
+      {% elif 'DISARM' in s or 'READY' in s or 'AWAKE' in s or 'CLEARED' in s %}
+        green
+      {% else %}
+        orange
+      {% endif %}
+    tap_action:
+      action: call-service
+      service: script.moto_toggle
+    layout: vertical
+    fill_container: true
+    card_mod:
+      style: |
+        mushroom-state-info {
+          text-align: center;
+        }
+  - type: glance
+    show_name: true
+    show_icon: true
+    show_state: false
+    entities:
+      - entity: button.moto_pull_debug_log
+        name: Pull Log
+        icon: mdi:file-download
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.moto_pull_debug_log
+      - entity: button.moto_clear_debug_log
+        name: Clear Log
+        icon: mdi:file-remove
+        tap_action:
+          action: call-service
+          service: button.press
+          target:
+            entity_id: button.moto_clear_debug_log
+      - entity: sensor.moto_raw_status
+        name: View Log
+        icon: mdi:file-eye-outline
+        tap_action:
+          action: url
+          url_path: /local/motolog_viewer.html

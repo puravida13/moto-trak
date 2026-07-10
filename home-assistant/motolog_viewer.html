@@ -1,0 +1,97 @@
+<!--
+=========================================================================
+MotoTrak - debug log viewer page
+=========================================================================
+Copy this file into your Home Assistant /config/www/ directory. It will
+then be reachable at /local/motolog_viewer.html, which is what the
+dashboard's "View Log" tile links to.
+
+Fetches /local/motolog_assembled.txt (built by the append_motolog/
+clear_motolog_file shell_commands in configuration.yaml) and displays it
+as plain text, with a manual refresh button.
+=========================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MotoTrak Debug Log</title>
+<style>
+  body {
+    background: #111;
+    color: #ddd;
+    font-family: monospace;
+    margin: 0;
+    padding: 1rem;
+  }
+  #bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  h1 {
+    font-size: 1rem;
+    margin: 0;
+    color: #fff;
+  }
+  button {
+    background: #2a2a2a;
+    color: #ddd;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    font-family: monospace;
+  }
+  button:hover {
+    background: #3a3a3a;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 1rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  #status {
+    color: #888;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <h1>MotoTrak Debug Log</h1>
+    <button onclick="loadLog()">Refresh</button>
+  </div>
+  <pre id="content">Loading...</pre>
+  <div id="status"></div>
+
+  <script>
+    async function loadLog() {
+      const contentEl = document.getElementById('content');
+      const statusEl = document.getElementById('status');
+      contentEl.textContent = 'Loading...';
+      try {
+        const res = await fetch('/local/motolog_assembled.txt', { cache: 'no-store' });
+        if (!res.ok) {
+          contentEl.textContent = 'No log file yet (HTTP ' + res.status + ').';
+          statusEl.textContent = '';
+          return;
+        }
+        const text = await res.text();
+        contentEl.textContent = text.length ? text : '(log file is empty)';
+        statusEl.textContent = 'Last loaded: ' + new Date().toLocaleString();
+      } catch (err) {
+        contentEl.textContent = 'Error loading log: ' + err;
+      }
+    }
+    loadLog();
+  </script>
+</body>
+</html>
