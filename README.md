@@ -2,6 +2,8 @@
 
 A DIY motorcycle GPS anti-theft tracker and alarm built on an ESP32 with cellular connectivity, motion-triggered theft detection, and full Home Assistant integration over MQTT.
 
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/puravida13)
+
 ![MotoTrak Home Assistant dashboard](images/dashboard.jpg)
 
 *(map redacted)*
