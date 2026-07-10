@@ -2,6 +2,10 @@
 
 A DIY motorcycle GPS anti-theft tracker and alarm built on an ESP32 with cellular connectivity, motion-triggered theft detection, and full Home Assistant integration over MQTT.
 
+![MotoTrak Home Assistant dashboard](images/dashboard.jpg)
+
+*(map redacted)*
+
 ## Hardware Used
 
 - **[LilyGo T-SIM7000G](https://github.com/Xinyuan-LilyGO/LilyGo-T-SIM7000G)** - ESP32 dev board with an onboard SIM7000G modem (LTE-M/NB-IoT + GPS)
