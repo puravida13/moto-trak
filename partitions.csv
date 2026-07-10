@@ -1,0 +1,12 @@
+# Custom 16MB partition table for MotoTrak (LilyGo T-SIM7000G, 16MB flash)
+# 3MB app partition (with OTA headroom via app0/app1), 9MB spiffs partition
+# for LittleFS debug logging (V7.61+). The "spiffs" subtype below is what
+# LittleFS.begin() looks for - do not change it to "fat"/FATFS or the
+# logger will fail to mount even though space is reserved.
+#
+# Name,    Type, SubType, Offset,   Size,  Flags
+nvs,       data, nvs,     0x9000,   0x5000,
+otadata,   data, ota,     0xe000,   0x2000,
+app0,      app,  ota_0,   0x10000,  3M,
+app1,      app,  ota_1,   ,         3M,
+spiffs,    data, spiffs,  ,         9M,
