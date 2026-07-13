@@ -13,8 +13,7 @@ A DIY motorcycle GPS anti-theft tracker and alarm built on an ESP32 with cellula
 - **[LilyGo T-SIM7000G](https://github.com/Xinyuan-LilyGO/LilyGo-T-SIM7000G)** - ESP32 dev board with an onboard SIM7000G modem (LTE-M/NB-IoT + GPS)
 - **MPU6050** - accelerometer/gyro, used as the motion-triggered theft sensor
 - **PN532** - NFC reader for tap-to-arm/disarm (optional - firmware detects its absence at boot and falls back to MQTT-only arm/disarm)
-- **21700 Li-ion cell** (a high-drain cell is strongly recommended - the SIM7000 modem draws current spikes up to ~2A during LTE transmit/registration)
-- A bulk capacitor across the main battery input, to help buffer those modem current spikes
+- **21700 Li-ion cell** (a high-drain cell is strongly recommended - the SIM7000 modem draws current spikes up to ~2A during LTE transmit/registration
 - 16MB flash (used for a 3MB OTA-capable app partition + 9MB LittleFS partition for debug logging - see `partitions.csv`)
 
 ## Features
