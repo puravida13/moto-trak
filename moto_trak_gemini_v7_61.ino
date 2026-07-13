@@ -69,8 +69,13 @@ const char* mqtt_server = "io.adafruit.com";
 const int mqtt_port = 1883;
 const char* apn = "h2g2";   // Google Fi public APN - not a secret
 
-const float sensitivity = 4.0;
-const float wakeup_threshold = 2.0;
+// MPU6050 motion-detection tuning. Lower threshold = more sensitive (smaller
+// motion triggers). Duration is roughly how many ms motion must persist
+// before it counts. Passed straight into mpu.setMotionDetectionThreshold()/
+// setMotionDetectionDuration() in setup() below - this is the only place
+// these values are used.
+const uint8_t MOTION_THRESHOLD = 3;
+const uint8_t MOTION_DURATION_MS = 5;
 
 // --- BATTERY THRESHOLDS (volts) ---
 const float BATT_WARN_V = 3.50;   // publishes BATT_LOW_X.XXV
@@ -868,8 +873,8 @@ void setup() {
     Serial.print("[SETUP] Initializing MPU6050...");
     if (mpu.begin()) {
         mpu.setHighPassFilter(MPU6050_HIGHPASS_DISABLE);
-        mpu.setMotionDetectionThreshold(3); // SENSITIVITY SETTING
-        mpu.setMotionDetectionDuration(5);  // DURATION OF TRIGGER SETTING
+        mpu.setMotionDetectionThreshold(MOTION_THRESHOLD);
+        mpu.setMotionDetectionDuration(MOTION_DURATION_MS);
         mpu.setInterruptPinPolarity(true);
         mpu.setMotionInterrupt(true);
         mpu.setInterruptPinLatch(true);
